@@ -16,20 +16,6 @@ Parameters:
     Type: AWS::EC2::KeyPair::KeyName
     Default: "appstack"
     ConstraintDescription: "must be a valid Key"
-  Vpc:
-    Description: "Student App VPC Details"
-    Type: AWS::EC2::VPC::Id
-    Default: "vpc-6384f30a"
-  AppSubnet: 
-    Description: "Student App AppSubnet Details"
-    Type: List<AWS::EC2::Subnet::Id>
-    Default: subnet-e0fa799b, subnet-9bc184f2, subnet-6b7fa926
-    ConstraintDescription: "Must be Valid Subnets"
-  AlbSubnet:
-    Description: "Student App ALBSubnet Details"
-    Type: List<AWS::EC2::Subnet::Id>
-    Default: subnet-e0fa799b, subnet-9bc184f2, subnet-6b7fa926
-    ConstraintDescription: "Must be Valid Subnets"
   AppASGSize:
     Description: "Student App ASG Size Details"
     Type: Number
@@ -42,8 +28,28 @@ Parameters:
     Description: "Student App HostedZone ID Details"
     Type: AWS::Route53::HostedZone::Id
     Default: "Z1979XAS933KHZ"
+  VpcCidr:
+    Description: VPC Cidr
+    Type: String
+    Default: 10.0.0.0/16
+  PrivateSubetCider:
+    Description: Private Subnet Cidr list
+    Type: CommaDelimitedList
+    Default: 10.0.0.0/24, 10.0.1.0/24, 10.0.2.0/24
+  PublicSubetCider: 
+    Description: Public Subnet Cidr list
+    Type: CommaDelimitedList
+    Default: 10.0.3.0/24, 10.0.4.0/24, 10.0.5.0/24
 
 Resources: 
+
+  NetworkStackStudent:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://student-cloudformation-templates.s3.us-east-2.amazonaws.com/NetworkStackStudent.yaml 
+      TimeoutInMinutes: 10   
+
+
   IAMAppstackInstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
@@ -57,8 +63,7 @@ Resources:
     Properties:
       GroupName: AppStackSG
       GroupDescription: "Student App layer SG for http access"
-      VpcId: 
-        Ref: Vpc
+      VpcId: !GetAtt NetworkStackStudent.Outputs.VPCID
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 8080  
@@ -76,8 +81,7 @@ Resources:
     Properties:
       GroupName: AppstackAlbSG
       GroupDescription: "Student ALB layer SG for https access"
-      VpcId: 
-        Ref: Vpc
+      VpcId: !GetAtt NetworkStackStudent.Outputs.VPCID
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 80  
@@ -92,8 +96,7 @@ Resources:
     Properties:
       GroupName: AppStackSSHSG
       GroupDescription: "Student App layer SG for SSH access"
-      VpcId: 
-        Ref: Vpc
+      VpcId: !GetAtt NetworkStackStudent.Outputs.VPCID
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 22  
@@ -106,8 +109,8 @@ Resources:
   AppLaunchConfiguration:
     Type: AWS::AutoScaling::LaunchConfiguration
     Properties:
-      LaunchConfigurationName: "StudentAppLCV4"
-      AssociatePublicIpAddress: true
+      LaunchConfigurationName: "StudentAppLCV5"
+      AssociatePublicIpAddress: false
       IamInstanceProfile: !Ref IAMAppstackInstanceProfile
       ImageId: 
         Ref: Ami
@@ -135,8 +138,8 @@ Resources:
   KeycloakLaunchConfiguration:
     Type: AWS::AutoScaling::LaunchConfiguration
     Properties:
-      LaunchConfigurationName: "keycloakLCV1"
-      AssociatePublicIpAddress: true
+      LaunchConfigurationName: "keycloakLCV2"
+      AssociatePublicIpAddress: false
       IamInstanceProfile: !Ref IAMAppstackInstanceProfile
       ImageId: 
         Ref: kAmi
@@ -157,7 +160,10 @@ Resources:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
       AutoScalingGroupName: AppASG
-      VPCZoneIdentifier: !Ref AppSubnet
+      VPCZoneIdentifier: 
+        - !GetAtt NetworkStackStudent.Outputs.PriSub1ID
+        - !GetAtt NetworkStackStudent.Outputs.PriSub2ID
+        - !GetAtt NetworkStackStudent.Outputs.PriSub3ID
       LaunchConfigurationName: !Ref AppLaunchConfiguration
       MaxSize: !Ref AppASGSize
       MinSize: !Ref AppASGSize
@@ -174,7 +180,10 @@ Resources:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
       AutoScalingGroupName: KeycloakASG
-      VPCZoneIdentifier: !Ref AppSubnet
+      VPCZoneIdentifier:
+        - !GetAtt NetworkStackStudent.Outputs.PriSub1ID
+        - !GetAtt NetworkStackStudent.Outputs.PriSub2ID
+        - !GetAtt NetworkStackStudent.Outputs.PriSub3ID
       LaunchConfigurationName: !Ref KeycloakLaunchConfiguration
       MaxSize: 1
       MinSize: 1
@@ -194,9 +203,9 @@ Resources:
       SecurityGroups:
         - !GetAtt AppstackAlbSG.GroupId
       Subnets: #!Split [',', !Join [',', !Ref AlbSubnet]]
-        - subnet-e0fa799b
-        - subnet-9bc184f2
-        - subnet-6b7fa926
+        - !GetAtt NetworkStackStudent.Outputs.PubSub1ID
+        - !GetAtt NetworkStackStudent.Outputs.PubSub2ID
+        - !GetAtt NetworkStackStudent.Outputs.PubSub3ID
 
   AppAlbListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
@@ -241,8 +250,7 @@ Resources:
       - Key: stickiness.enabled
         Value: true
       UnhealthyThresholdCount: 10
-      VpcId:
-        Ref: Vpc
+      VpcId: !GetAtt NetworkStackStudent.Outputs.VPCID
 
   KeycloakTG:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
@@ -261,8 +269,7 @@ Resources:
       - Key: stickiness.enabled
         Value: true
       UnhealthyThresholdCount: 10
-      VpcId:
-        Ref: Vpc
+      VpcId: !GetAtt NetworkStackStudent.Outputs.VPCID
 
   AppAlbDNSAlias:
     Type: AWS::Route53::RecordSet
