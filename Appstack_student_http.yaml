@@ -9,7 +9,7 @@ Parameters:
   kAmi:
     Description: "Student App AMI Details"
     Type: AWS::EC2::Image::Id
-    Default: "ami-048e162d2fb8345c2"
+    Default: "ami-0847b1b01067895ac"
     ConstraintDescription: "must be a valid AMI"
   KeyPair:
     Description: "Student App Key Details"
@@ -48,7 +48,11 @@ Resources:
     Properties:
       TemplateURL: https://student-cloudformation-templates.s3.us-east-2.amazonaws.com/NetworkStackStudent.yaml 
       TimeoutInMinutes: 10   
-
+  IAMRole:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://student-cloudformation-templates.s3.us-east-2.amazonaws.com/IAMRole.yaml 
+      TimeoutInMinutes: 2
 
   IAMAppstackInstanceProfile:
     Type: AWS::IAM::InstanceProfile
@@ -56,7 +60,7 @@ Resources:
       InstanceProfileName: IAMAppStackInstanceProfile
       Path: /
       Roles:
-        - Appstack_admin_role
+        - !GetAtt IAMRole.Outputs.IAMRole
 
   AppStackSG:
     Type: AWS::EC2::SecurityGroup
@@ -138,7 +142,7 @@ Resources:
   KeycloakLaunchConfiguration:
     Type: AWS::AutoScaling::LaunchConfiguration
     Properties:
-      LaunchConfigurationName: "keycloakLCV2"
+      LaunchConfigurationName: "keycloakLCV3"
       AssociatePublicIpAddress: false
       IamInstanceProfile: !Ref IAMAppstackInstanceProfile
       ImageId: 
