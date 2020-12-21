@@ -1,0 +1,280 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: "Dev environment for Student App"
+Parameters:
+  Ami:
+    Description: "Student App AMI Details"
+    Type: AWS::EC2::Image::Id
+    Default: "ami-09558250a3419e7d0"
+    ConstraintDescription: "must be a valid AMI"
+  kAmi:
+    Description: "Student App AMI Details"
+    Type: AWS::EC2::Image::Id
+    Default: "ami-048e162d2fb8345c2"
+    ConstraintDescription: "must be a valid AMI"
+  KeyPair:
+    Description: "Student App Key Details"
+    Type: AWS::EC2::KeyPair::KeyName
+    Default: "appstack"
+    ConstraintDescription: "must be a valid Key"
+  Vpc:
+    Description: "Student App VPC Details"
+    Type: AWS::EC2::VPC::Id
+    Default: "vpc-6384f30a"
+  AppSubnet: 
+    Description: "Student App AppSubnet Details"
+    Type: List<AWS::EC2::Subnet::Id>
+    Default: subnet-e0fa799b, subnet-9bc184f2, subnet-6b7fa926
+    ConstraintDescription: "Must be Valid Subnets"
+  AlbSubnet:
+    Description: "Student App ALBSubnet Details"
+    Type: List<AWS::EC2::Subnet::Id>
+    Default: subnet-e0fa799b, subnet-9bc184f2, subnet-6b7fa926
+    ConstraintDescription: "Must be Valid Subnets"
+  AppASGSize:
+    Description: "Student App ASG Size Details"
+    Type: Number
+    Default: 2
+  AppCert:
+    Description: "Student App ALB ACM Cert ARN Details"
+    Type: String
+    Default: "arn:aws:acm:us-east-2:191155221734:certificate/52ee8120-6088-422f-b156-1b0571d946b3"
+  HostedZoneID:
+    Description: "Student App HostedZone ID Details"
+    Type: AWS::Route53::HostedZone::Id
+    Default: "Z1979XAS933KHZ"
+
+Resources: 
+  IAMAppstackInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: IAMAppStackInstanceProfile
+      Path: /
+      Roles:
+        - Appstack_admin_role
+
+  AppStackSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: AppStackSG
+      GroupDescription: "Student App layer SG for http access"
+      VpcId: 
+        Ref: Vpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8080  
+          ToPort: 8080
+          SourceSecurityGroupId: 
+            Fn::GetAtt:
+              - AppstackAlbSG
+              - GroupId
+      Tags:
+        - Key: Name
+          Value: AppStackSG
+    
+  AppstackAlbSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: AppstackAlbSG
+      GroupDescription: "Student ALB layer SG for https access"
+      VpcId: 
+        Ref: Vpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80  
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: AppstackAlbSG
+  
+  AppStackSSHSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: AppStackSSHSG
+      GroupDescription: "Student App layer SG for SSH access"
+      VpcId: 
+        Ref: Vpc
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22  
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: AppStackSSHSG        
+    
+  AppLaunchConfiguration:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      LaunchConfigurationName: "StudentAppLCV4"
+      AssociatePublicIpAddress: true
+      IamInstanceProfile: !Ref IAMAppstackInstanceProfile
+      ImageId: 
+        Ref: Ami
+      InstanceType: "t2.micro"
+      InstanceMonitoring: false
+      BlockDeviceMappings: 
+        - DeviceName: /dev/sdb
+          Ebs: 
+            VolumeSize: 10
+            VolumeType: "gp2"
+            DeleteOnTermination: true
+      KeyName: 
+        Ref: KeyPair 
+      SecurityGroups:
+        - !GetAtt AppStackSSHSG.GroupId
+        - !GetAtt AppStackSG.GroupId
+      UserData: !Base64 |
+        #!/bin/bash -x
+        sudo -i
+        mkfs -t xfs /dev/xvdb
+        mount /dev/xvdb /opt
+        cp /etc/fstab /etc/fstab.bak
+        echo "/dev/xvdb    /opt   xfs    defaults,noatime  1   1" >> /etc/fstab
+
+  KeycloakLaunchConfiguration:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      LaunchConfigurationName: "keycloakLCV1"
+      AssociatePublicIpAddress: true
+      IamInstanceProfile: !Ref IAMAppstackInstanceProfile
+      ImageId: 
+        Ref: kAmi
+      InstanceType: "t2.micro"
+      InstanceMonitoring: false
+      KeyName: 
+        Ref: KeyPair 
+      SecurityGroups:
+        - !GetAtt AppStackSSHSG.GroupId
+        - !GetAtt AppStackSG.GroupId
+      UserData: !Base64 |
+        #!/bin/bash -x
+        sudo -i
+        nohup /opt/keycloak/bin/launch.sh standalone.xml 0.0.0.0 &
+           
+
+  AppASG: 
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AutoScalingGroupName: AppASG
+      VPCZoneIdentifier: !Ref AppSubnet
+      LaunchConfigurationName: !Ref AppLaunchConfiguration
+      MaxSize: !Ref AppASGSize
+      MinSize: !Ref AppASGSize
+      #DesiredCapacity: !Ref AppASGSize
+      HealthCheckGracePeriod: 300
+      TargetGroupARNs: 
+        - Ref: AppTG
+      Tags: 
+        - Key: Name
+          Value: Appstack-Tomcat
+          PropagateAtLaunch: 'true'
+
+  KeycloakASG: 
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AutoScalingGroupName: KeycloakASG
+      VPCZoneIdentifier: !Ref AppSubnet
+      LaunchConfigurationName: !Ref KeycloakLaunchConfiguration
+      MaxSize: 1
+      MinSize: 1
+      #DesiredCapacity: !Ref AppASGSize
+      HealthCheckGracePeriod: 300
+      TargetGroupARNs: 
+        - Ref: KeycloakTG
+      Tags: 
+        - Key: Name
+          Value: Keycloak-Server
+          PropagateAtLaunch: 'true'
+
+  AppAlb:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Scheme: internet-facing
+      SecurityGroups:
+        - !GetAtt AppstackAlbSG.GroupId
+      Subnets: #!Split [',', !Join [',', !Ref AlbSubnet]]
+        - subnet-e0fa799b
+        - subnet-9bc184f2
+        - subnet-6b7fa926
+
+  AppAlbListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+      - Type: forward
+        TargetGroupArn:
+          Ref: AppTG
+      LoadBalancerArn:
+        Ref: AppAlb
+      Port: 80
+      Protocol: HTTP
+
+  KeycloakListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref AppAlbListener
+      Priority: 100
+      Conditions:
+        - Field: path-pattern
+          Values:
+            - "/auth/"
+            - "/auth/*"
+      Actions:
+        - TargetGroupArn: !Ref KeycloakTG
+          Type: forward
+
+  AppTG:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    DependsOn: AppAlb
+    Properties:
+      HealthCheckPath: "/student/"
+      HealthCheckProtocol: HTTP
+      Matcher:
+        HttpCode: '200,302'
+      HealthCheckIntervalSeconds: 120
+      HealthyThresholdCount: 3
+      Port: 8080
+      Protocol: HTTP
+      Name: AppTG
+      TargetGroupAttributes:
+      - Key: stickiness.enabled
+        Value: true
+      UnhealthyThresholdCount: 10
+      VpcId:
+        Ref: Vpc
+
+  KeycloakTG:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    DependsOn: AppAlb
+    Properties:
+      HealthCheckPath: "/auth/"
+      HealthCheckProtocol: HTTP
+      Matcher:
+        HttpCode: '200,302,301,303,307'
+      HealthCheckIntervalSeconds: 120
+      HealthyThresholdCount: 3
+      Port: 8080
+      Protocol: HTTP
+      Name: KeycloakTG
+      TargetGroupAttributes:
+      - Key: stickiness.enabled
+        Value: true
+      UnhealthyThresholdCount: 10
+      VpcId:
+        Ref: Vpc
+
+  AppAlbDNSAlias:
+    Type: AWS::Route53::RecordSet
+    DependsOn: AppAlb
+    Properties:
+      AliasTarget:
+        DNSName: !GetAtt 'AppAlb.DNSName'
+        HostedZoneId: !GetAtt 'AppAlb.CanonicalHostedZoneID'
+      HostedZoneId: !Ref HostedZoneID
+      Name: student.prodops-fico.com
+      Type: A
+      
+  
+
+Outputs: {}
