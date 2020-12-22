@@ -138,6 +138,13 @@ Resources:
         mount /dev/xvdb /opt
         cp /etc/fstab /etc/fstab.bak
         echo "/dev/xvdb    /opt   xfs    defaults,noatime  1   1" >> /etc/fstab
+        log=/var/log/AppStackDeploy.log
+        repo=https://github.com/53555/Appstack-Ansible.git
+        # Install Required packages
+        yum install git -y > $log
+        amazon-linux-extras install ansible2 -y >> $log
+        git clone $repo /tmp/AppStack >> $log
+        ansible-playbook /tmp/AppStack/tomcat-student-app.yml >> $log
 
   KeycloakLaunchConfiguration:
     Type: AWS::AutoScaling::LaunchConfiguration
