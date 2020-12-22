@@ -145,6 +145,7 @@ Resources:
         amazon-linux-extras install ansible2 -y >> $log
         git clone $repo /tmp/AppStack >> $log
         ansible-playbook /tmp/AppStack/tomcat-student-app.yml >> $log
+        ansible-playbook /tmp/AppStack/CloudWatchLog.yml >> $log
 
   KeycloakLaunchConfiguration:
     Type: AWS::AutoScaling::LaunchConfiguration
