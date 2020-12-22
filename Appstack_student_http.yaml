@@ -113,7 +113,7 @@ Resources:
   AppLaunchConfiguration:
     Type: AWS::AutoScaling::LaunchConfiguration
     Properties:
-      LaunchConfigurationName: "StudentAppLCV5"
+      LaunchConfigurationName: "StudentAppLCV6"
       AssociatePublicIpAddress: false
       IamInstanceProfile: !Ref IAMAppstackInstanceProfile
       ImageId: 
