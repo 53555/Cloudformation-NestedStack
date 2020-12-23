@@ -146,7 +146,13 @@ Resources:
         git clone $repo /tmp/AppStack >> $log
         ansible-playbook /tmp/AppStack/tomcat-student-app.yml >> $log
         ansible-playbook /tmp/AppStack/CloudWatchLog.yml >> $log
-        
+        if [ $? == 0 ]
+        then 
+          rm -rf /tmp/AppStack
+        else 
+          echo "unable to delete AppStack code, previous Playbook deployment looks failed check 
+                in the /var/log/cloud-init-output.log for more information" >> $log 
+        fi        
 
   KeycloakLaunchConfiguration:
     Type: AWS::AutoScaling::LaunchConfiguration
