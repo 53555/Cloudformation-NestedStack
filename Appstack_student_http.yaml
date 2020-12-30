@@ -46,12 +46,12 @@ Resources:
   NetworkStackStudent:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: https://student-cloudformation-templates.s3.us-east-2.amazonaws.com/NetworkStackStudent.yaml 
+      TemplateURL: https://student-cloudformation-template.s3.us-east-2.amazonaws.com/NetworkStackStudent.yaml 
       TimeoutInMinutes: 10   
   IAMRole:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: https://student-cloudformation-templates.s3.us-east-2.amazonaws.com/IAMRole.yaml 
+      TemplateURL: https://student-cloudformation-template.s3.us-east-2.amazonaws.com/IAMRole.yaml 
       TimeoutInMinutes: 2
 
   IAMAppstackInstanceProfile:
