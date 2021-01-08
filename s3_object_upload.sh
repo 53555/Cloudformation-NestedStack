@@ -7,14 +7,14 @@ IAM_Template=$(aws s3 ls s3://$BUCKET_NAME | awk -F" " '{print $4}'| grep IAMRol
 
 if [[ $IAM_Template != "IAMRole.yaml" ]]
 then
-        aws s3 cp $1/IAMRole.yaml s3://$BUCKET_NAME/ --region $REGION_NAME
+        aws s3 cp $CF_HOME/IAMRole.yaml s3://$BUCKET_NAME/ --region $REGION_NAME
 else
         echo "$IAM_Template already exist"
 fi
 
 if [[ $Network_Template != "NetworkStackStudent.yaml" ]]
 then
-        aws s3 cp $1/NetworkStackStudent.yaml s3://$BUCKET_NAME/ --region $REGION_NAME
+        aws s3 cp $CF_HOME/NetworkStackStudent.yaml s3://$BUCKET_NAME/ --region $REGION_NAME
 else
         echo "$Network_Template already exist"
 fi
