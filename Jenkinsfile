@@ -9,12 +9,12 @@ pipeline {
         stage('SCM CheckOut') {
             steps {
                 git credentialsId: 'GitHub', url: 'https://github.com/53555/Cloudformation-NestedStack'
-                sh 'echo ${WORKSPACE}'
+                sh 'echo "${WORKSPACE}"'
             }
         }
-        stage('Deploy S3 Bucket ${bucket_name} into AWS Account') {
+        stage('Deploy S3 Bucket "${bucket_name}" into AWS Account') {
             steps {
-                sh 'python3 ${WORKSPACE}/s3_upload.py $profile_name $region_name $bucket_name'
+                sh 'python3 "${WORKSPACE}"/s3_upload.py $profile_name $region_name $bucket_name'
             }
         }
         stage('Upload nested stacks Templates into S3 Bucket ${bucket_name}') {
@@ -29,7 +29,7 @@ pipeline {
         stage('Deploy CloudFormation Stack into AWS') {
             steps {
                 sh '''
-                    aws cloudformation create-stack --stack-name AppStack-Layer --template-body file://${WORKSPACE}/Appstack_student_http.yaml --role-arn arn:aws:iam::191155221734:role/Appstack-Cloudformation-Role --capabilities CAPABILITY_NAMED_IAM --region ${region_name}
+                    aws cloudformation create-stack --stack-name AppStack-Layer --template-body file://"${WORKSPACE}"/Appstack_student_http.yaml --role-arn arn:aws:iam::191155221734:role/Appstack-Cloudformation-Role --capabilities CAPABILITY_NAMED_IAM --region ${region_name}
 
                     aws cloudformation wait stack-create-complete --stack-name AppStack-Layer --region ${region_name}
 
