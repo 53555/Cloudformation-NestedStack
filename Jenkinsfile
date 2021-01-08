@@ -9,6 +9,7 @@ pipeline {
         stage('SCM CheckOut') {
             steps {
                 git credentialsId: 'GitHub', url: 'https://github.com/53555/Cloudformation-NestedStack'
+                sh 'echo ${WORKSPACE}'
             }
         }
         stage('Deploy S3 Bucket ${bucket_name} into AWS Account') {
