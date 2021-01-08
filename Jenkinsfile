@@ -23,7 +23,8 @@ pipeline {
                 
             }
             steps {
-                sh 'bash s3_object_upload.sh ${CF_HOME} ${bucket_name} ${region_name}'
+                echo "${CF_HOME}"
+                sh 'bash s3_object_upload.sh "${CF_HOME}" ${bucket_name} ${region_name}'
             }
         }
         stage('Deploy CloudFormation Stack into AWS') {
