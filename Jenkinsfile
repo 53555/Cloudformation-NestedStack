@@ -14,7 +14,7 @@ pipeline {
         }
         stage('Deploy S3 Bucket "${bucket_name}" into AWS Account') {
             steps {
-                sh 'python3 "${WORKSPACE}"/s3_upload.py $profile_name $region_name $bucket_name'
+                sh 'python3 "${WORKSPACE}"/s3_bucket_creation.py $profile_name $region_name $bucket_name'
             }
         }
         stage('Upload nested stacks Templates into S3 Bucket ${bucket_name}') {
