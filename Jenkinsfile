@@ -24,7 +24,7 @@ pipeline {
             }
             steps {
                 echo "${CF_HOME}"
-                sh 'bash "${WORKSPACE}"/s3_object_upload.sh ""${CF_HOME}"" ${bucket_name} ${region_name}'
+                sh 'bash "${WORKSPACE}"/s3_object_upload.sh ${CF_HOME} ${bucket_name} ${region_name}'
             }
         }
         stage('Deploy CloudFormation Stack into AWS') {
