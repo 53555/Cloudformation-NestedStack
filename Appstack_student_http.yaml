@@ -36,6 +36,10 @@ Parameters:
     Description: Private Subnet Cidr list
     Type: CommaDelimitedList
     Default: 10.0.0.0/24, 10.0.1.0/24, 10.0.2.0/24
+  PrivateDBSubetCider:
+    Description: Private Subnet Cidr list
+    Type: CommaDelimitedList
+    Default: 10.0.6.0/24, 10.0.7.0/24, 10.0.8.0/24
   PublicSubetCider: 
     Description: Public Subnet Cidr list
     Type: CommaDelimitedList

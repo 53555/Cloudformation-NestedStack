@@ -10,6 +10,10 @@ Parameters:
     Description: Private Subnet Cidr list
     Type: CommaDelimitedList
     Default: 10.0.0.0/24, 10.0.1.0/24, 10.0.2.0/24
+  PrivateDBSubetCider:
+    Description: Private Subnet Cidr list
+    Type: CommaDelimitedList
+    Default: 10.0.6.0/24, 10.0.7.0/24, 10.0.8.0/24
   PublicSubetCider: 
     Description: Public Subnet Cidr list
     Type: CommaDelimitedList
@@ -58,7 +62,41 @@ Resources:
       CidrBlock: !Select [ 2, !Ref PrivateSubetCider ]
       Tags:
         - Key: Name
-          Value: NetworkStackPriSub03  
+          Value: NetworkStackPriSub03
+
+  NetworkStackPriDBSub01:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select
+        - 0
+        - Fn::GetAZs: !Ref 'AWS::Region'
+      VpcId: !Ref NetworkStackVPC
+      CidrBlock: !Select [ 0, !Ref PrivateDBSubetCider ]
+      Tags:
+        - Key: Name
+          Value: NetworkStackPriDBSub01
+  NetworkStackPriDBSub02:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select
+        - 1
+        - Fn::GetAZs: !Ref 'AWS::Region'
+      VpcId: !Ref NetworkStackVPC
+      CidrBlock: !Select [ 1, !Ref PrivateDBSubetCider ]
+      Tags:
+        - Key: Name
+          Value: NetworkStackPriDBSub02
+  NetworkStackPriDBSub03:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select
+        - 2
+        - Fn::GetAZs: !Ref 'AWS::Region'
+      VpcId: !Ref NetworkStackVPC
+      CidrBlock: !Select [ 2, !Ref PrivateDBSubetCider ]
+      Tags:
+        - Key: Name
+          Value: NetworkStackPriDBSub03
 
   NetworkStackPubSub01:
     Type: AWS::EC2::Subnet
@@ -126,6 +164,25 @@ Resources:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref NetworkStackPriSub03
+      RouteTableId: !Ref NetworkStackPriRT
+
+  NetworkStackPriRTA1DB:
+    DependsOn: NetworkStackPriRT
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref NetworkStackPriDBSub01
+      RouteTableId: !Ref NetworkStackPriRT
+  NetworkStackPriRTA2DB:
+    DependsOn: NetworkStackPriRT
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref NetworkStackPriDBSub02
+      RouteTableId: !Ref NetworkStackPriRT
+  NetworkStackPriRTA3DB:
+    DependsOn: NetworkStackPriRT
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref NetworkStackPriDBSub03
       RouteTableId: !Ref NetworkStackPriRT
   
   NetworkStackPubRTA1:
@@ -199,6 +256,15 @@ Outputs:
   PriSub3ID:
     Description: Private Subnet ID 3
     Value: !Ref NetworkStackPriSub03
+  PriDBSub1ID:
+    Description: Private DB Subnet ID 1
+    Value: !Ref NetworkStackPriDBSub01
+  PriDBSub2ID:
+    Description: Private DB Subnet ID 2
+    Value: !Ref NetworkStackPriDBSub02
+  PriDBSub3ID:
+    Description: Private DB Subnet ID 3
+    Value: !Ref NetworkStackPriDBSub03
   PubSub1ID:
     Description: Public Subnet ID 1
     Value: !Ref NetworkStackPubSub01
