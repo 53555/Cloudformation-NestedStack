@@ -1,4 +1,4 @@
-#!/bin/python3
+#!/usr/bin/python
 import boto3
 import sys
 import platform
