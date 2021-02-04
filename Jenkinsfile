@@ -12,8 +12,20 @@ pipeline {
                 sh 'echo "${WORKSPACE}"'
             }
         }
+
+        stage('Installing all pre-required packages as jenkins user'){
+            steps {
+                sh '''                
+                sudo yum install python3 -y &&
+                sudo yum install python-pip python3-wheel -y &&
+                sudo pip install boto3 --user &&
+                pip3 install botocore --user
+                '''
+            }
+        }
         stage('Deploy S3 Bucket "${bucket_name}" into AWS Account') {
             steps {
+
                 sh 'python3 "${WORKSPACE}"/s3_bucket_creation.py $profile_name $region_name $bucket_name'
             }
         }
