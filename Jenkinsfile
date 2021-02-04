@@ -18,7 +18,7 @@ pipeline {
                 sh '''                
                 sudo yum install python3 -y &&
                 sudo yum install python-pip python3-wheel -y &&
-                pip install boto3 --user &&
+                pip3 install boto3 --user &&
                 pip3 install botocore --user
                 '''
             }
